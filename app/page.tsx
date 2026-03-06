@@ -5,6 +5,8 @@ import { useAppKit } from "@reown/appkit/react"
 import { useAccount } from "wagmi"
 import { MarketStats } from "@/components/ui/MarketStats"
 import { LiquidityDepthChart } from "@/components/liquidity/LiquidityDepthChart"
+import { WarRoom } from "@/components/citadel/WarRoom"
+import { BattleHistory } from "@/components/citadel/BattleHistory"
 
 const NAV = [
   ["Citadel", "#citadel"],
@@ -421,33 +423,25 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── WAR ROOM PLACEHOLDER ─────────────── */}
+      {/* ── WAR ROOM ─────────────────────────── */}
       <section id="war-room" style={{ padding: "4rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
             <h2 className="section-title">War Room</h2>
             <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
           </div>
-          <div className="panel" style={{ padding: "3rem", textAlign: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-display)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
-              GUARDIAN LEADERBOARD & JOIN FORM — COMING IN NEXT PHASE
-            </p>
-          </div>
+          <WarRoom wall={wall} loading={loading} />
         </div>
       </section>
 
-      {/* ── BATTLES PLACEHOLDER ──────────────── */}
+      {/* ── BATTLE HISTORY ───────────────────── */}
       <section id="battles" style={{ padding: "4rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
             <h2 className="section-title">Battle History</h2>
             <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
           </div>
-          <div className="panel" style={{ padding: "3rem", textAlign: "center" }}>
-            <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-display)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
-              BATTLE RECORDS & HALL OF FAME — COMING IN NEXT PHASE
-            </p>
-          </div>
+          <BattleHistory />
         </div>
       </section>
 
