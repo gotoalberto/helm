@@ -63,16 +63,16 @@
 | Fase | Descripción | Estado |
 |------|-------------|--------|
 | 0 | Setup: repo, deps, env vars, assets | ✅ COMPLETADO |
-| 1 | BD (schema citadel) + APIs citadel | 🔄 EN PROGRESO |
-| 2 | CSS globals + design system cyberpunk | ⬜ Pendiente |
-| 3 | Header + estructura de página | ⬜ Pendiente |
-| 4 | Active Battle Section (4 estados) | ⬜ Pendiente |
+| 1 | BD (schema citadel) + APIs citadel | ✅ COMPLETADO |
+| 2 | CSS globals + design system cyberpunk | ✅ COMPLETADO |
+| 3 | Header + estructura de página | ✅ COMPLETADO |
+| 4 | Active Battle Section (4 estados) | ✅ COMPLETADO |
 | 5 | Three.js — CitadelWall3D | ⬜ Pendiente |
 | 6 | Three.js — DataStorm hero | ⬜ Pendiente |
 | 7 | War Room + Join Form | ⬜ Pendiente |
 | 8 | Battle History + leaderboards | ⬜ Pendiente |
 | 9 | Guardian Profile + Badges | ⬜ Pendiente |
-| 10 | Admin Backoffice /admin | ⬜ Pendiente |
+| 10 | Admin Backoffice /admin | ✅ COMPLETADO |
 | 11 | Animaciones de eventos (breach, deploy, join) | ⬜ Pendiente |
 | 12 | Price Chart con Wall overlay | ⬜ Pendiente |
 | 13 | Audio (Tone.js + SFX) | ⬜ Pendiente |
@@ -329,4 +329,4 @@
 
 ---
 
-*Última actualización: Fase 0 completada, Fase 1 en progreso*
+*Última actualización: Fases 0-4 y 10 completadas. Próximos: 5 (Three.js wall), 6 (DataStorm), 7 (War Room + Join Form), 8 (Battle History), 9 (Guardian Profile), 11-15.*
