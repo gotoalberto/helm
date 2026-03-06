@@ -76,9 +76,10 @@ const TIMEFRAMES = [
 
 interface LiquidityDepthChartProps {
   onJoinRange?: (mcapLow: number, mcapHigh: number) => void
+  citadelWall?: { mcap_usd: number; status: string } | null
 }
 
-export function LiquidityDepthChart({ onJoinRange }: LiquidityDepthChartProps) {
+export function LiquidityDepthChart({ onJoinRange, citadelWall }: LiquidityDepthChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -233,8 +234,8 @@ export function LiquidityDepthChart({ onJoinRange }: LiquidityDepthChartProps) {
     for (const band of paintOrder) {
       const height = band.bottom - band.top
       const alpha  = 0.18
-      const color  = band.inRange ? `rgba(240,230,78,${alpha})` : `rgba(67,148,244,${alpha})`
-      const border = band.inRange ? "rgba(240,230,78,0.45)"      : "rgba(67,148,244,0.35)"
+      const color  = band.inRange ? `rgba(0,245,255,${alpha})` : `rgba(0,100,130,${alpha})`
+      const border = band.inRange ? "rgba(0,245,255,0.4)"      : "rgba(0,150,200,0.25)"
 
       ctx.fillStyle = color
       ctx.fillRect(0, band.top, canvas.width - 90, height)
@@ -249,12 +250,44 @@ export function LiquidityDepthChart({ onJoinRange }: LiquidityDepthChartProps) {
 
     // Hit-test order: smallest bands first so they are selectable when nested inside larger ones
     drawnBandsRef.current = [...bands].sort((a, b) => (a.bottom - a.top) - (b.bottom - b.top))
+
+    // Draw Citadel Wall line if active
+    if (citadelWall && citadelWall.status === "active" && citadelWall.mcap_usd > 0) {
+      try {
+        const wallY = series.priceToCoordinate(citadelWall.mcap_usd)
+        if (wallY !== null) {
+          const wallX = canvas.width - 90
+
+          // Red danger zone below the wall
+          ctx.fillStyle = "rgba(255, 34, 68, 0.06)"
+          ctx.fillRect(0, wallY, wallX, canvas.height - wallY)
+
+          // Cyan neon wall line
+          ctx.strokeStyle = "#00f5ff"
+          ctx.lineWidth = 2
+          ctx.setLineDash([])
+          ctx.shadowColor = "#00f5ff"
+          ctx.shadowBlur = 8
+          ctx.beginPath()
+          ctx.moveTo(0, wallY)
+          ctx.lineTo(wallX, wallY)
+          ctx.stroke()
+          ctx.shadowBlur = 0
+
+          // Wall label
+          const labelText = `THE WALL — $${(citadelWall.mcap_usd / 1e6).toFixed(2)}M`
+          ctx.fillStyle = "#00f5ff"
+          ctx.font = "bold 10px 'Share Tech Mono', monospace"
+          ctx.fillText(labelText, 8, wallY - 6)
+        }
+      } catch { /* ignore */ }
+    }
   }
 
   // Redraw overlay when positions or price data changes
   useEffect(() => {
     drawOverlay()
-  }, [positionsData, ethPriceUsd, totalSupplyRaw, ohlcData, priceData])
+  }, [positionsData, ethPriceUsd, totalSupplyRaw, ohlcData, priceData, citadelWall])
 
   // Also redraw overlay after chart renders new data (subscribe to visible range changes)
   useEffect(() => {

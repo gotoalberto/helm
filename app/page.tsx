@@ -458,7 +458,7 @@ export default function Home() {
             <h2 className="section-title">Depth Chart</h2>
             <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
           </div>
-          <LiquidityDepthChart />
+          <LiquidityDepthChart citadelWall={wall ? { mcap_usd: wall.mcap_usd, status: wall.status } : null} />
         </div>
       </section>
 
