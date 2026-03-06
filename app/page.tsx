@@ -281,13 +281,19 @@ export default function Home() {
   const { wall, loading } = useCitadelWall()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrollY, setScrollY] = useState(0)
+  const [scrollProgress, setScrollProgress] = useState(0)
 
   const walletLabel = isConnected
     ? `${address?.slice(0, 6)}···${address?.slice(-4)}`
     : "Connect"
 
   useEffect(() => {
-    const onScroll = () => setScrollY(window.scrollY)
+    const onScroll = () => {
+      const y = window.scrollY
+      setScrollY(y)
+      const maxScroll = document.body.scrollHeight - window.innerHeight
+      setScrollProgress(maxScroll > 0 ? Math.min(100, (y / maxScroll) * 100) : 0)
+    }
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
@@ -299,7 +305,7 @@ export default function Home() {
       <div style={{
         position: "fixed", top: 0, left: 0, zIndex: 100,
         height: 2, background: "var(--neon-cyan)",
-        width: `${Math.min(100, (scrollY / (document.body?.scrollHeight - window.innerHeight || 1)) * 100)}%`,
+        width: `${scrollProgress}%`,
         transition: "width 0.1s",
         boxShadow: "0 0 8px var(--neon-cyan)",
       }} />
