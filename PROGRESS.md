@@ -42,7 +42,7 @@
 - citadel-logo.png, hero-bg.png, hero-guardian.png, villain-bears.png
 - rally-poster.png, admin-bg.png, battle-report.png
 - badge-architect.png, badge-first-guardian.png, badge-fee-harvester.png, badge-veteran.png
-- Pendientes: badge-survivor.png, badge-last-stand.png
+- badge-survivor.png ✅, badge-last-stand.png ✅ (generados con Gemini)
 
 ### Diseños de referencia (en ~/git/helm/designs/)
 - ref-homepage-intact.png, ref-homepage-siege.png, ref-homepage-fallen.png
@@ -62,8 +62,8 @@
 
 | Fase | Descripción | Estado |
 |------|-------------|--------|
-| 0 | Setup: repo, deps, env vars, assets | 🔄 EN PROGRESO |
-| 1 | BD (schema citadel) + APIs citadel | ⬜ Pendiente |
+| 0 | Setup: repo, deps, env vars, assets | ✅ COMPLETADO |
+| 1 | BD (schema citadel) + APIs citadel | 🔄 EN PROGRESO |
 | 2 | CSS globals + design system cyberpunk | ⬜ Pendiente |
 | 3 | Header + estructura de página | ⬜ Pendiente |
 | 4 | Active Battle Section (4 estados) | ⬜ Pendiente |
@@ -103,8 +103,8 @@
 - [ ] git push origin main
 
 #### Resultado
-- Estado: EN PROGRESO
-- Notas: —
+- Estado: COMPLETADO ✅
+- Notas: 3 tests de preset range fallaban ya en zeus-liquidity (pre-existing, no son nuestros). 14/17 pasan. Dev server OK. Push a main OK. Badges survivor y last-stand generados.
 
 ---
 
@@ -329,4 +329,4 @@
 
 ---
 
-*Última actualización: Fase 0 iniciada*
+*Última actualización: Fase 0 completada, Fase 1 en progreso*

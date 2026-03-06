@@ -1,271 +1,467 @@
 "use client"
 
-import { useState } from "react"
-import { LiquidityDepthChart } from "@/components/liquidity/LiquidityDepthChart"
-import { MarketStats } from "@/components/ui/MarketStats"
-import { PositionsList } from "@/components/positions/PositionsList"
-import { AddLiquidityForm } from "@/components/liquidity/AddLiquidityForm"
-import { AprDisplay } from "@/components/ui/AprDisplay"
-import { FeeLeaderboard } from "@/components/ui/FeeLeaderboard"
+import { useState, useEffect } from "react"
 import { useAppKit } from "@reown/appkit/react"
 import { useAccount } from "wagmi"
+import { MarketStats } from "@/components/ui/MarketStats"
+import { LiquidityDepthChart } from "@/components/liquidity/LiquidityDepthChart"
 
-const NAV = [["Defend", "#defend"], ["Market", "#market"], ["Positions", "#positions"], ["Add LP", "#addlp"]] as const
+const NAV = [
+  ["Citadel", "#citadel"],
+  ["War Room", "#war-room"],
+  ["Battles", "#battles"],
+  ["Guardians", "#guardians"],
+] as const
 
+// ─── Hook: useCitadelWall ────────────────────────────────────────────────────
+function useCitadelWall() {
+  const [wall, setWall] = useState<null | {
+    id: number
+    tick_lower: number
+    tick_upper: number
+    mcap_usd: number
+    status: string
+    integrity: number
+    wallState: string
+    wallImage: string
+    currentTick: number
+    deployed_at: string
+    peak_liquidity: string
+  }>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchWall() {
+      try {
+        const res = await fetch("/api/citadel/wall")
+        const data = await res.json()
+        setWall(data.wall)
+      } catch {
+        setWall(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchWall()
+    const interval = setInterval(fetchWall, 30_000)
+    return () => clearInterval(interval)
+  }, [])
+
+  return { wall, loading }
+}
+
+// ─── Animated Counter ────────────────────────────────────────────────────────
+function AnimatedCounter({ value, prefix = "", suffix = "", decimals = 0 }: {
+  value: number; prefix?: string; suffix?: string; decimals?: number
+}) {
+  const [display, setDisplay] = useState(value)
+  useEffect(() => {
+    let start = display
+    const end = value
+    if (start === end) return
+    const steps = 30
+    const increment = (end - start) / steps
+    let step = 0
+    const t = setInterval(() => {
+      step++
+      start += increment
+      setDisplay(step >= steps ? end : start)
+      if (step >= steps) clearInterval(t)
+    }, 16)
+    return () => clearInterval(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
+
+  return (
+    <span style={{ fontFamily: "var(--font-mono)" }}>
+      {prefix}{display.toFixed(decimals)}{suffix}
+    </span>
+  )
+}
+
+// ─── Wall Health Bar ─────────────────────────────────────────────────────────
+function WallHealthBar({ integrity, wallState }: { integrity: number; wallState: string }) {
+  const stateClass = wallState === "INTACT" ? "health-intact"
+    : wallState === "SIEGE" ? "health-siege"
+    : wallState === "CRITICAL" ? "health-critical"
+    : "health-fallen"
+
+  const stateColor = wallState === "INTACT" ? "var(--intact-color)"
+    : wallState === "SIEGE" ? "var(--siege-color)"
+    : wallState === "CRITICAL" ? "var(--critical-color)"
+    : "var(--fallen-color)"
+
+  return (
+    <div style={{ width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+        <span style={{ fontFamily: "var(--font-display)", fontSize: "0.65rem", letterSpacing: "0.1em", color: "var(--text-muted)", textTransform: "uppercase" }}>
+          Wall Integrity
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9rem", color: stateColor }}>
+          {integrity}%
+        </span>
+      </div>
+      <div className="health-bar-track">
+        <div
+          className={`health-bar-fill ${stateClass}`}
+          style={{ width: `${Math.max(0, Math.min(100, integrity))}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ─── Active Battle Section ───────────────────────────────────────────────────
+function ActiveBattleSection({ wall, loading }: {
+  wall: ReturnType<typeof useCitadelWall>["wall"]
+  loading: boolean
+}) {
+  // State A: No wall
+  if (!loading && !wall) {
+    return (
+      <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
+        <div className="panel" style={{ maxWidth: 600, margin: "0 auto", padding: "3rem 2rem" }}>
+          <div style={{ fontSize: "4rem", marginBottom: "1rem", filter: "grayscale(1) opacity(0.4)" }}>🏰</div>
+          <h2 className="section-title" style={{ marginBottom: "0.75rem", color: "var(--text-muted)" }}>
+            NO ACTIVE WALL
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-body)", lineHeight: 1.6 }}>
+            The Citadel has no active price wall. The admin must deploy a new wall to begin a battle.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", padding: "2rem 0" }}>
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: 100, borderRadius: 2 }} />
+        ))}
+      </div>
+    )
+  }
+
+  if (!wall) return null
+
+  const isBattle  = wall.status === "active"
+  const isBreached = wall.status === "breached"
+  const mcap = wall.mcap_usd
+
+  const stateLabel = wall.wallState === "INTACT" ? "WALL INTACT"
+    : wall.wallState === "SIEGE" ? "UNDER SIEGE"
+    : wall.wallState === "CRITICAL" ? "CRITICAL — FALLING"
+    : "WALL BREACHED"
+
+  const stateClass = wall.wallState === "INTACT" ? "status-intact"
+    : wall.wallState === "SIEGE" ? "status-siege"
+    : wall.wallState === "CRITICAL" ? "status-critical"
+    : "status-fallen"
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", alignItems: "start" }}>
+      {/* Left: Wall image */}
+      <div style={{ position: "relative" }}>
+        <div className={`panel ${wall.wallState === "CRITICAL" ? "wall-shake" : ""}`}
+             style={{ aspectRatio: "4/3", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={wall.wallImage}
+            alt={`Wall - ${wall.wallState}`}
+            style={{ width: "100%", height: "100%", objectFit: "cover",
+              filter: isBreached ? "sepia(1) hue-rotate(300deg) saturate(2)" : "none" }}
+          />
+          {/* Siege pulse rings for critical/siege */}
+          {(wall.wallState === "SIEGE" || wall.wallState === "CRITICAL") && (
+            <>
+              <div className="siege-pulse-ring" style={{ width: "60%", height: "60%", top: "20%", left: "20%" }} />
+              <div className="siege-pulse-ring" style={{ width: "80%", height: "80%", top: "10%", left: "10%", animationDelay: "0.7s" }} />
+            </>
+          )}
+        </div>
+        <div style={{ marginTop: "0.75rem" }}>
+          <WallHealthBar integrity={wall.integrity} wallState={wall.wallState} />
+        </div>
+      </div>
+
+      {/* Right: Stats */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* Status badge */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span className={`status-badge ${stateClass}`}>{stateLabel}</span>
+          {isBattle && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--neon-red)", display: "inline-block", animation: "neon-pulse-red 1s ease-in-out infinite" }} />}
+        </div>
+
+        {/* MCAP target */}
+        <div className="panel" style={{ padding: "1.25rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.6rem", letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+            Wall Target MCAP
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "2rem", color: "var(--neon-cyan)", letterSpacing: "0.05em" }}>
+            <AnimatedCounter value={mcap} prefix="$" suffix="M" decimals={2} />
+          </div>
+        </div>
+
+        {/* Tick range */}
+        <div className="panel" style={{ padding: "1rem 1.25rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.6rem", letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 8 }}>
+            Price Range
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: "0.8rem" }}>
+            <span style={{ color: "var(--text-secondary)" }}>Tick {wall.tick_lower}</span>
+            <span style={{ color: "var(--text-muted)" }}>→</span>
+            <span style={{ color: "var(--text-secondary)" }}>Tick {wall.tick_upper}</span>
+          </div>
+        </div>
+
+        {/* Current tick */}
+        <div className="panel" style={{ padding: "1rem 1.25rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.6rem", letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 6 }}>
+            Current Pool Tick
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.2rem",
+            color: wall.currentTick >= wall.tick_lower ? "var(--neon-green)" : "var(--neon-red)" }}>
+            {wall.currentTick} {wall.currentTick >= wall.tick_lower ? "▲ IN RANGE" : "▼ BREACHED"}
+          </div>
+        </div>
+
+        {/* CTA */}
+        {isBattle && (
+          <a href="#war-room" className="btn-primary" style={{ textAlign: "center" }}>
+            JOIN THE DEFENSE →
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 export default function Home() {
   const { open } = useAppKit()
   const { address, isConnected } = useAccount()
+  const { wall, loading } = useCitadelWall()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [prefillMcap, setPrefillMcap] = useState<{ min: number; max: number } | null>(null)
-  const walletLabel = isConnected ? `${address?.slice(0, 6)}...${address?.slice(-4)}` : "Connect Wallet"
+  const [scrollY, setScrollY] = useState(0)
 
-  function handleJoinRange(mcapLow: number, mcapHigh: number) {
-    setPrefillMcap({ min: mcapLow, max: mcapHigh })
-    document.getElementById("addlp")?.scrollIntoView({ behavior: "smooth" })
-  }
+  const walletLabel = isConnected
+    ? `${address?.slice(0, 6)}···${address?.slice(-4)}`
+    : "Connect"
+
+  useEffect(() => {
+    const onScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-void)" }}>
 
-      {/* ── HEADER ────────────────────────────────── */}
-      <header className="header-zeus" style={{ position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 1.5rem", height: 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* ── Scroll progress bar ─────────────────── */}
+      <div style={{
+        position: "fixed", top: 0, left: 0, zIndex: 100,
+        height: 2, background: "var(--neon-cyan)",
+        width: `${Math.min(100, (scrollY / (document.body?.scrollHeight - window.innerHeight || 1)) * 100)}%`,
+        transition: "width 0.1s",
+        boxShadow: "0 0 8px var(--neon-cyan)",
+      }} />
 
-          <a href="/" style={{ display: "flex", alignItems: "center", gap: "0.55rem", textDecoration: "none" }}>
-            <span style={{ fontFamily: "var(--font-body)", fontSize: "1rem", fontWeight: 700, color: "#fff", letterSpacing: "0.01em" }}>earn.pepes.dog</span>
+      {/* ── HEADER ─────────────────────────────── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        background: "rgba(3, 6, 8, 0.92)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid var(--glass-border)",
+      }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 1.5rem", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+
+          {/* Logo */}
+          <a href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/citadel-logo.png" alt="Citadel" style={{ height: 28, width: "auto" }} />
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.85rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--neon-cyan)", textTransform: "uppercase" }}>
+              Citadel Protocol
+            </span>
           </a>
 
-          <nav className="hidden md:flex" style={{ alignItems: "center", gap: "0.1rem" }}>
-            {NAV.map(([l, h]) => <a key={h} href={h} className="nav-link">{l}</a>)}
+          {/* Nav */}
+          <nav className="hidden md:flex" style={{ alignItems: "center", gap: "0.5rem" }}>
+            {NAV.map(([label, href]) => (
+              <a key={href} href={href} className="nav-link">{label}</a>
+            ))}
           </nav>
 
+          {/* Right */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <button onClick={() => open()} className="btn-zeus hidden md:inline-flex" style={{ fontSize: "0.82rem", padding: "0.45rem 1.2rem", minHeight: "2rem" }}>{walletLabel}</button>
-            <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} style={{ background: "none", border: "none", cursor: "pointer", padding: "0.4rem", flexDirection: "column", gap: 5 }}>
-              {[0,1,2].map(i => <span key={i} style={{ display: "block", width: 20, height: 2, background: "#fff", borderRadius: 2, transition: "all 0.2s", transform: i===0&&menuOpen?"rotate(45deg) translateY(7px)":i===2&&menuOpen?"rotate(-45deg) translateY(-7px)":"none", opacity: i===1&&menuOpen?0:1 }}/>)}
+            {/* Wall status indicator */}
+            {wall && (
+              <span className="status-badge status-intact hidden md:inline-block"
+                    style={{ fontSize: "0.6rem", padding: "2px 8px" }}>
+                WALL LIVE
+              </span>
+            )}
+            <button
+              onClick={() => open()}
+              className="btn-primary hidden md:inline-flex"
+              style={{ fontSize: "0.72rem", padding: "0.5rem 1rem", minHeight: "2rem" }}
+            >
+              {walletLabel}
+            </button>
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden"
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{ background: "none", border: "1px solid var(--glass-border)", cursor: "pointer", padding: "0.4rem 0.6rem", display: "flex", flexDirection: "column", gap: 4 }}
+            >
+              {[0,1,2].map(i => (
+                <span key={i} style={{
+                  display: "block", width: 18, height: 1.5,
+                  background: "var(--neon-cyan)", borderRadius: 1,
+                  transition: "all 0.2s",
+                  transform: i===0&&menuOpen ? "rotate(45deg) translateY(5.5px)" : i===2&&menuOpen ? "rotate(-45deg) translateY(-5.5px)" : "none",
+                  opacity: i===1&&menuOpen ? 0 : 1
+                }} />
+              ))}
             </button>
           </div>
         </div>
 
+        {/* Mobile menu */}
         {menuOpen && (
-          <div style={{ background: "rgba(19,12,26,0.98)", borderTop: "1px solid var(--glass-border)", padding: "1rem 1.5rem 1.5rem" }}>
-            <nav style={{ display: "flex", flexDirection: "column", gap: "0.1rem" }}>
-              {NAV.map(([l, h]) => <a key={h} href={h} onClick={() => setMenuOpen(false)} className="nav-link" style={{ fontSize: "1rem", padding: "0.65rem 0.75rem" }}>{l}</a>)}
-              <div style={{ height: 1, background: "var(--glass-border)", margin: "0.75rem 0" }} />
-              <button onClick={() => { open(); setMenuOpen(false) }} className="btn-zeus" style={{ width: "100%" }}>{walletLabel}</button>
-            </nav>
+          <div style={{ background: "var(--bg-panel)", borderTop: "1px solid var(--glass-border)", padding: "1rem 1.5rem" }}>
+            {NAV.map(([label, href]) => (
+              <a key={href} href={href} className="nav-link"
+                 style={{ display: "block", padding: "0.6rem 0" }}
+                 onClick={() => setMenuOpen(false)}>{label}</a>
+            ))}
+            <button onClick={() => { open(); setMenuOpen(false) }} className="btn-primary" style={{ width: "100%", marginTop: "0.75rem" }}>
+              {walletLabel}
+            </button>
           </div>
         )}
       </header>
 
-      {/* ── HERO ── */}
-      <section style={{ minHeight: "calc(100vh - 60px)", display: "flex", alignItems: "center", padding: "5rem 1.5rem 4rem", position: "relative", overflow: "hidden" }}>
+      {/* ── HERO ───────────────────────────────── */}
+      <section style={{
+        minHeight: "85vh",
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        textAlign: "center",
+        padding: "4rem 1.5rem",
+        position: "relative",
+        overflow: "hidden",
+        background: "radial-gradient(ellipse at 50% 60%, rgba(0,245,255,0.04) 0%, transparent 70%)",
+      }}>
+        {/* Background grid */}
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 0,
+          backgroundImage: "linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
+          maskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
+        }} />
 
-        <div style={{ position: "absolute", top: "-20%", left: "50%", transform: "translateX(-50%)", width: "80%", height: "60%", background: "radial-gradient(ellipse, rgba(240,230,78,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: "-10%", right: "10%", width: "40%", height: "40%", background: "radial-gradient(ellipse, rgba(109,156,244,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 800 }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "0.7rem", letterSpacing: "0.3em", color: "var(--neon-cyan)", marginBottom: "1.5rem", textTransform: "uppercase" }}>
+            — Uniswap V4 Concentrated Liquidity —
+          </div>
 
-        <div style={{ maxWidth: 1280, margin: "0 auto", width: "100%" }}>
+          <h1 className="hero-title" style={{ marginBottom: "1.5rem" }}>
+            CITADEL<br />PROTOCOL
+          </h1>
 
-          {/* Badge */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "var(--glass-bg)", border: "1px solid var(--glass-border-bright)", borderRadius: "9999px", padding: "0.3rem 1rem", width: "fit-content", backdropFilter: "blur(12px)", marginBottom: "1.75rem" }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 6px #4ade80" }} />
-            <span style={{ fontFamily: "var(--font-body)", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Price Defender HQ
+          <p style={{
+            fontFamily: "var(--font-body)", fontSize: "clamp(1rem, 2vw, 1.25rem)", fontWeight: 500,
+            color: "var(--text-secondary)", lineHeight: 1.7, marginBottom: "2.5rem", maxWidth: 560, margin: "0 auto 2.5rem"
+          }}>
+            The admin deploys a <strong style={{ color: "var(--neon-cyan)" }}>price wall</strong> — a single-tick concentrated liquidity position.
+            Guardians defend it. Bears attack. The wall lives or falls.
+          </p>
+
+          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+            <a href="#citadel" className="btn-primary">View Active Wall</a>
+            <a href="#war-room" className="btn-secondary">Join the Defense</a>
+          </div>
+        </div>
+
+        {/* Animated corner decorations */}
+        <div style={{ position: "absolute", top: "2rem", left: "2rem", width: 60, height: 60, borderTop: "1px solid var(--neon-cyan)", borderLeft: "1px solid var(--neon-cyan)", opacity: 0.3 }} />
+        <div style={{ position: "absolute", bottom: "2rem", right: "2rem", width: 60, height: 60, borderBottom: "1px solid var(--neon-cyan)", borderRight: "1px solid var(--neon-cyan)", opacity: 0.3 }} />
+      </section>
+
+      {/* ── ACTIVE CITADEL SECTION ─────────────── */}
+      <section id="citadel" style={{ padding: "4rem 1.5rem", maxWidth: 1280, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+          <h2 className="section-title">Active Battle</h2>
+          <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
+          {!loading && wall && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+              Deployed {new Date(wall.deployed_at).toLocaleDateString()}
             </span>
-          </div>
-
-          {/* Title */}
-          <div style={{ marginBottom: "1.25rem" }}>
-            <img src="/title.webp" alt="ZEUS — Pepe's Dog" style={{ maxWidth: "clamp(280px, 50vw, 520px)", height: "auto", mixBlendMode: "screen" }} />
-          </div>
-
-          {/* Tagline */}
-          <p style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.2rem, 2.5vw, 1.8rem)", color: "#fff", marginBottom: "0.75rem", letterSpacing: "-0.01em" }}>
-            Become a Price Defender
-          </p>
-
-          {/* Description */}
-          <p style={{ fontSize: "clamp(1rem, 1.5vw, 1.1rem)", color: "var(--text-secondary)", lineHeight: 1.65, maxWidth: 560, marginBottom: "1.75rem" }}>
-            Don't just hold — defend. Add liquidity to the ZEUS/ETH pool and earn trading fees while protecting the price.
-          </p>
-
-          {/* Stats pills */}
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1.75rem" }}>
-            {[{ v: "0%", l: "Tax" }, { v: "V4", l: "Uniswap" }].map(({ v, l }) => (
-              <div key={l} style={{ background: "var(--glass-bg)", border: "1px solid var(--glass-border-bright)", borderRadius: "9999px", padding: "0.4rem 1rem", display: "flex", gap: "0.4rem", alignItems: "center", backdropFilter: "blur(8px)" }}>
-                <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "#fff" }}>{v}</span>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontWeight: 600 }}>{l}</span>
-              </div>
-            ))}
-            <AprDisplay variant="pill" />
-          </div>
-
-          {/* CTAs */}
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <a href="#addlp" className="btn-zeus" style={{ fontSize: "1rem", padding: "0.8rem 2rem" }}>Start Defending</a>
-            <a href="#positions" className="btn-outline" style={{ fontSize: "1rem", padding: "0.8rem 2rem" }}>My Positions</a>
-          </div>
+          )}
         </div>
+        <ActiveBattleSection wall={wall} loading={loading} />
       </section>
 
-      {/* ── WHY LP? — 3 value props ── */}
-      <section id="defend" style={{ padding: "5rem 1.5rem", background: "var(--bg-secondary)", borderTop: "1px solid var(--glass-border)", borderBottom: "1px solid var(--glass-border)" }}>
+      {/* ── MARKET STATS ──────────────────────── */}
+      <section id="market" style={{ padding: "2rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ marginBottom: "3rem" }}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.4rem" }}>Why LP?</p>
-            <h2 className="section-title">Three Reasons to Defend</h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1.5rem" }}>
-
-            {/* Card 1: DCA Exit */}
-            <div className="card-zeus" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem", borderTop: "2px solid rgba(240,230,78,0.3)" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "0.75rem", background: "rgba(240,230,78,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(240,230,78,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-                  <polyline points="16 7 22 7 22 13" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", color: "#f0e64e", marginBottom: "0.5rem" }}>Gradual Selling</h3>
-                <p style={{ fontSize: "0.92rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                  As ZEUS pumps through your range, you sell gradually at every price level — not in one panic dump. Classic DCA exit, automated.
-                </p>
-              </div>
-            </div>
-
-            {/* Card 2: Defend */}
-            <div className="card-zeus" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem", borderTop: "2px solid rgba(67,148,244,0.4)" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "0.75rem", background: "rgba(67,148,244,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(67,148,244,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", color: "#4394f4", marginBottom: "0.5rem" }}>Defend the Price</h3>
-                <p style={{ fontSize: "0.92rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                  Your liquidity acts as a buy wall below current price. When bears attack, your position absorbs the sell pressure and keeps the floor.
-                </p>
-              </div>
-            </div>
-
-            {/* Card 3: Earn Fees */}
-            <div className="card-zeus" style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem", borderTop: "2px solid rgba(34,197,94,0.4)" }}>
-              <div style={{ width: 40, height: 40, borderRadius: "0.75rem", background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(34,197,94,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="1" x2="12" y2="23" />
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-              </div>
-              <div>
-                <h3 style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", color: "#22c55e", marginBottom: "0.5rem" }}>Earn Fees</h3>
-                <p style={{ fontSize: "0.92rem", color: "var(--text-secondary)", lineHeight: 1.65 }}>
-                  Every swap through your range pays you. The more volume, the more you earn.
-                </p>
-                <AprDisplay variant="card" />
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </section>
-
-      {/* ── MARKET STATS ──────────────────────────── */}
-      <section id="market" style={{ padding: "5rem 1.5rem" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ marginBottom: "2.5rem" }}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.4rem" }}>Live Data</p>
-            <h2 className="section-title">Market Overview</h2>
-          </div>
           <MarketStats />
         </div>
       </section>
 
-      {/* ── DEFENDERS MAP ─────────────────────────── */}
-      <section style={{ padding: "5rem 1.5rem", background: "var(--bg-secondary)", borderTop: "1px solid var(--glass-border)", borderBottom: "1px solid var(--glass-border)" }}>
+      {/* ── PRICE CHART ──────────────────────── */}
+      <section style={{ padding: "3rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "2.5rem", flexWrap: "wrap", gap: "1rem" }}>
-            <div>
-              <p style={{ fontFamily: "var(--font-body)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.4rem" }}>V4 Liquidity Zones</p>
-              <h2 className="section-title">The Defense Lines</h2>
-            </div>
-            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", maxWidth: 420, lineHeight: 1.6, textAlign: "right" }}>
-              This is where pepes.dog holders are putting real ETH on the line to defend the price. Each rectangle is a live LP position. Yellow = in range, blue = standby.
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+            <h2 className="section-title">Depth Chart</h2>
+            <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
+          </div>
+          <LiquidityDepthChart />
+        </div>
+      </section>
+
+      {/* ── WAR ROOM PLACEHOLDER ─────────────── */}
+      <section id="war-room" style={{ padding: "4rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+            <h2 className="section-title">War Room</h2>
+            <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
+          </div>
+          <div className="panel" style={{ padding: "3rem", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-display)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+              GUARDIAN LEADERBOARD & JOIN FORM — COMING IN NEXT PHASE
             </p>
           </div>
-          <div className="card-zeus" style={{ padding: "1.5rem" }}>
-            <LiquidityDepthChart onJoinRange={handleJoinRange} />
-          </div>
         </div>
       </section>
 
-      {/* ── PROMO ── */}
-      <section style={{ padding: "5rem 1.5rem" }}>
+      {/* ── BATTLES PLACEHOLDER ──────────────── */}
+      <section id="battles" style={{ padding: "4rem 1.5rem", borderTop: "1px solid var(--glass-border)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div className="feature-card" style={{ padding: "3rem 3.5rem", position: "relative", overflow: "hidden" }}>
-
-            <div style={{ position: "absolute", top: "-30%", right: "-5%", width: 400, height: 400, background: "radial-gradient(circle, rgba(240,230,78,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem", maxWidth: 540 }}>
-              <div>
-                <p style={{ fontFamily: "var(--font-body)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.5rem" }}>Uniswap V4</p>
-                <h2 className="section-title">Join the<br />Defenders</h2>
-              </div>
-              <p style={{ fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.7, maxWidth: 400 }}>
-                Don't let bears eat the floor. Put your ZEUS and ETH to work as concentrated liquidity — earn fees, set your exit, and defend at the same time.
-              </p>
-              <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-                {[{ v: "0%", l: "Tax" }, { v: "0.3%", l: "Fee Tier" }, { v: "V4", l: "Uniswap" }].map(({ v, l }) => (
-                  <div key={l} className="card-yellow" style={{ padding: "0.65rem 1.2rem", textAlign: "center" }}>
-                    <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", lineHeight: 1, color: "rgba(240,230,78,0.9)" }}>{v}</div>
-                    <div style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(240,230,78,0.5)", marginTop: "0.2rem" }}>{l}</div>
-                  </div>
-                ))}
-              </div>
-              <a href="#addlp" className="btn-zeus" style={{ width: "fit-content", fontSize: "1rem" }}>Start Defending</a>
-            </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "2rem" }}>
+            <h2 className="section-title">Battle History</h2>
+            <div style={{ flex: 1, height: 1, background: "var(--glass-border)" }} />
+          </div>
+          <div className="panel" style={{ padding: "3rem", textAlign: "center" }}>
+            <p style={{ color: "var(--text-muted)", fontFamily: "var(--font-display)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
+              BATTLE RECORDS & HALL OF FAME — COMING IN NEXT PHASE
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ── LEADERBOARD ── */}
-      <FeeLeaderboard />
-
-      {/* ── POSITIONS ── */}
-      <PositionsList />
-
-      {/* ── ADD LIQUIDITY ─────────────────────────── */}
-      <section id="addlp" style={{ padding: "5rem 1.5rem", background: "var(--bg-secondary)", borderTop: "1px solid var(--glass-border)", borderBottom: "1px solid var(--glass-border)" }}>
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "2.5rem" }}>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "0.5rem" }}>Uniswap V4 Pool</p>
-            <h2 className="section-title">Add Liquidity</h2>
-          </div>
-          <div className="card-zeus" style={{ padding: "2rem 2.5rem" }}>
-            <AddLiquidityForm initialMinMcap={prefillMcap?.min} initialMaxMcap={prefillMcap?.max} onConnect={() => open()} />
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer style={{ background: "var(--bg-primary)", borderTop: "1px solid var(--glass-border)", padding: "3rem 1.5rem" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1.5rem", marginBottom: "2rem" }}>
-            <a href="/" style={{ display: "flex", alignItems: "center", gap: "0.6rem", textDecoration: "none" }}>
-              <div>
-                <div style={{ fontFamily: "var(--font-body)", fontSize: "1rem", fontWeight: 700, color: "#fff" }}>earn.pepes.dog</div>
-                <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", fontWeight: 500 }}>ZEUS Liquidity Manager</div>
-              </div>
-            </a>
-          </div>
-
-          <div className="divider" />
-          <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginTop: "1.5rem", lineHeight: 1.6 }}>
-            Built on Uniswap V4 · Ethereum Mainnet · Not financial advice. Use at your own risk.
-          </p>
+      {/* ── FOOTER ───────────────────────────── */}
+      <footer style={{ borderTop: "1px solid var(--glass-border)", padding: "2rem 1.5rem", marginTop: "2rem" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: "0.7rem", letterSpacing: "0.1em", color: "var(--text-muted)", textTransform: "uppercase" }}>
+            Citadel Protocol — Defend the Wall
+          </span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-muted)" }}>
+            ZEUS: 0x0f7d...cCC8 · Pool Fee: 0.3% · Tick Spacing: 60
+          </span>
         </div>
       </footer>
-
     </div>
   )
 }
