@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { useParams } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { isAddress } from "viem"
+import { GuardianBadges } from "@/components/citadel/GuardianBadges"
 import { useState } from "react"
 import { PublicPositionCard, FeeCollection } from "@/components/positions/PublicPositionCard"
 import { deserializePosition } from "@/lib/uniswap/positions"
@@ -112,7 +113,7 @@ function ProfileClient({ address }: { address: string }) {
   const currentTick = 0 // not needed for display, only for in/out range (already computed server-side)
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-primary)" }}>
+    <div style={{ minHeight: "100vh", background: "var(--bg-void)" }}>
 
       {/* Header */}
       <header className="header-zeus" style={{ position: "sticky", top: 0, zIndex: 50 }}>
@@ -132,6 +133,9 @@ function ProfileClient({ address }: { address: string }) {
       </header>
 
       <main style={{ maxWidth: 900, margin: "0 auto", padding: "2.5rem 1.5rem 4rem" }}>
+
+        {/* Guardian badges section */}
+        <GuardianBadges address={address} />
 
         {/* Address chip */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "2rem", flexWrap: "wrap" }}>

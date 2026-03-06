@@ -1,12 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { useAppKit } from "@reown/appkit/react"
 import { useAccount } from "wagmi"
 import { MarketStats } from "@/components/ui/MarketStats"
 import { LiquidityDepthChart } from "@/components/liquidity/LiquidityDepthChart"
 import { WarRoom } from "@/components/citadel/WarRoom"
 import { BattleHistory } from "@/components/citadel/BattleHistory"
+import { useGPUTier } from "@/hooks/useGPUTier"
+import { integrityToImage } from "@/lib/citadel/wallImage"
+import type { WallState } from "@/lib/citadel/wallIntegrity"
+
+// Lazy load Three.js wall — heavy dependency
+const CitadelWall3D = dynamic(
+  () => import("@/components/citadel/CitadelWall3D").then(m => ({ default: m.CitadelWall3D })),
+  { ssr: false, loading: () => <div style={{ width: "100%", height: "100%", background: "var(--bg-panel)" }} /> }
+)
 
 const NAV = [
   ["Citadel", "#citadel"],
@@ -113,6 +123,32 @@ function WallHealthBar({ integrity, wallState }: { integrity: number; wallState:
   )
 }
 
+// ─── Wall Visual (3D or 2D fallback) ────────────────────────────────────────
+function WallVisual({ wall }: { wall: { integrity: number; wallState: string; wallImage: string } }) {
+  const gpuTier = useGPUTier()
+  const wallState = wall.wallState as WallState
+  const use3D = gpuTier !== "low" && gpuTier !== "unknown"
+
+  if (!use3D) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={integrityToImage(wall.integrity)}
+        alt={`Wall - ${wall.wallState}`}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
+    )
+  }
+
+  return (
+    <CitadelWall3D
+      integrity={wall.integrity}
+      wallState={wallState}
+      style={{ width: "100%", height: "100%" }}
+    />
+  )
+}
+
 // ─── Active Battle Section ───────────────────────────────────────────────────
 function ActiveBattleSection({ wall, loading }: {
   wall: ReturnType<typeof useCitadelWall>["wall"]
@@ -168,13 +204,7 @@ function ActiveBattleSection({ wall, loading }: {
       <div style={{ position: "relative" }}>
         <div className={`panel ${wall.wallState === "CRITICAL" ? "wall-shake" : ""}`}
              style={{ aspectRatio: "4/3", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={wall.wallImage}
-            alt={`Wall - ${wall.wallState}`}
-            style={{ width: "100%", height: "100%", objectFit: "cover",
-              filter: isBreached ? "sepia(1) hue-rotate(300deg) saturate(2)" : "none" }}
-          />
+          <WallVisual wall={wall} />
           {/* Siege pulse rings for critical/siege */}
           {(wall.wallState === "SIEGE" || wall.wallState === "CRITICAL") && (
             <>
