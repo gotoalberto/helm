@@ -12,10 +12,14 @@ import { useGPUTier } from "@/hooks/useGPUTier"
 import { integrityToImage } from "@/lib/citadel/wallImage"
 import type { WallState } from "@/lib/citadel/wallIntegrity"
 
-// Lazy load Three.js wall — heavy dependency
+// Lazy load Three.js components — heavy dependencies
 const CitadelWall3D = dynamic(
   () => import("@/components/citadel/CitadelWall3D").then(m => ({ default: m.CitadelWall3D })),
   { ssr: false, loading: () => <div style={{ width: "100%", height: "100%", background: "var(--bg-panel)" }} /> }
+)
+const DataStorm = dynamic(
+  () => import("@/components/citadel/DataStorm").then(m => ({ default: m.DataStorm })),
+  { ssr: false }
 )
 
 const NAV = [
@@ -385,12 +389,17 @@ export default function Home() {
         overflow: "hidden",
         background: "radial-gradient(ellipse at 50% 60%, rgba(0,245,255,0.04) 0%, transparent 70%)",
       }}>
-        {/* Background grid */}
+        {/* DataStorm 3D background */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          <DataStorm style={{ width: "100%", height: "100%", opacity: 0.6 }} />
+        </div>
+        {/* Background grid overlay */}
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
-          backgroundImage: "linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px)",
+          backgroundImage: "linear-gradient(rgba(0,245,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.02) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
           maskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
+          pointerEvents: "none",
         }} />
 
         <div style={{ position: "relative", zIndex: 1, maxWidth: 800 }}>
