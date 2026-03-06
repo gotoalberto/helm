@@ -67,17 +67,17 @@
 | 2 | CSS globals + design system cyberpunk | ✅ COMPLETADO |
 | 3 | Header + estructura de página | ✅ COMPLETADO |
 | 4 | Active Battle Section (4 estados) | ✅ COMPLETADO |
-| 5 | Three.js — CitadelWall3D | ⬜ Pendiente |
-| 6 | Three.js — DataStorm hero | ⬜ Pendiente |
-| 7 | War Room + Join Form | ⬜ Pendiente |
-| 8 | Battle History + leaderboards | ⬜ Pendiente |
-| 9 | Guardian Profile + Badges | ⬜ Pendiente |
+| 5 | Three.js — CitadelWall3D | ✅ COMPLETADO |
+| 6 | Three.js — DataStorm hero | ✅ COMPLETADO |
+| 7 | War Room + Join Form | ✅ COMPLETADO |
+| 8 | Battle History + leaderboards | ✅ COMPLETADO |
+| 9 | Guardian Profile + Badges | ✅ COMPLETADO |
 | 10 | Admin Backoffice /admin | ✅ COMPLETADO |
 | 11 | Animaciones de eventos (breach, deploy, join) | ⬜ Pendiente |
-| 12 | Price Chart con Wall overlay | ⬜ Pendiente |
+| 12 | Price Chart con Wall overlay | ✅ COMPLETADO |
 | 13 | Audio (Tone.js + SFX) | ⬜ Pendiente |
 | 14 | Polish, mobile, responsive | ⬜ Pendiente |
-| 15 | Deploy Vercel + verificación Playwright | ⬜ Pendiente |
+| 15 | Deploy Vercel + verificación Playwright | ✅ COMPLETADO (build OK, deployed) |
 
 ---
 
@@ -329,4 +329,10 @@
 
 ---
 
-*Última actualización: Fases 0-4 y 10 completadas. Próximos: 5 (Three.js wall), 6 (DataStorm), 7 (War Room + Join Form), 8 (Battle History), 9 (Guardian Profile), 11-15.*
+*Última actualización: Fases 0-10 + 12 + 15 completadas. Pendientes: 11 (animaciones breach/deploy), 13 (audio Tone.js), 14 (polish mobile).*
+
+## ESTADO DEL DEPLOY
+- URL de deploy: helm-gso45ej9m-alberto-g-toribios-projects.vercel.app (detrás de auth Vercel)
+- Build: ✅ limpio sin errores TypeScript
+- Env vars en Vercel: todas añadidas (ALCHEMY, DATABASE_URL, COINGECKO, REOWN, ZEUS_TOKEN, CHAIN_ID, ADMIN_PASSWORD)
+- Commit actual: 1c7e3ee
