@@ -178,7 +178,7 @@ function ActiveBattleSection({ wall, loading }: {
   // Loading state
   if (loading) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", padding: "2rem 0" }}>
+      <div className="battle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", padding: "2rem 0" }}>
         {[...Array(4)].map((_, i) => (
           <div key={i} className="skeleton" style={{ height: 100, borderRadius: 2 }} />
         ))}
@@ -203,7 +203,7 @@ function ActiveBattleSection({ wall, loading }: {
     : "status-fallen"
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", alignItems: "start" }}>
+    <div className="battle-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem", alignItems: "start" }}>
       {/* Left: Wall image */}
       <div style={{ position: "relative" }}>
         <div className={`panel ${wall.wallState === "CRITICAL" ? "wall-shake" : ""}`}

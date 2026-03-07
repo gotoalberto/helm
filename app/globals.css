@@ -631,6 +631,16 @@ body::before {
 }
 .breach-flash { animation: breach-flash 3.2s ease-out forwards; }
 
+@keyframes breach-scan-h {
+  0%   { top: 0%; }
+  100% { top: 100%; }
+}
+
+@keyframes deploy-scan {
+  0%   { top: 0%; opacity: 1; }
+  100% { top: 100%; opacity: 0.3; }
+}
+
 /* ── Legacy compatibility ─────────────────────────────────── */
 .card-zeus {
   background: var(--bg-panel);
@@ -663,6 +673,34 @@ body::before {
 @media (max-width: 768px) {
   .hero-title { font-size: clamp(2.5rem, 14vw, 5rem); }
   .btn-primary, .btn-secondary, .btn-danger { font-size: 0.72rem; padding: 0.6rem 1.2rem; }
+
+  /* Active battle grid: stack on mobile */
+  .battle-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* War room: stack columns */
+  .war-room-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Section padding tighter on mobile */
+  .section-pad {
+    padding: 2.5rem 1rem !important;
+  }
+
+  /* Panel: less padding on mobile */
+  .panel {
+    padding: 1rem;
+  }
+
+  /* Stats row: wrap + smaller */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Health bar text */
+  .section-title { font-size: clamp(1rem, 4vw, 1.4rem); }
 }
 
 /* ── prefers-reduced-motion ──────────────────────────────── */

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { mcapToTick } from "@/lib/uniswap/mcap"
+import { triggerCitadelEvent } from "@/components/citadel/EventAnimations"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Wall {
@@ -134,6 +135,7 @@ function DeployWallForm({ password, onDeploy }: { password: string; onDeploy: ()
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Deploy failed")
       setConfirmOpen(false)
+      triggerCitadelEvent({ type: "deploy", mcapUsd: mcapVal })
       onDeploy()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Deploy failed")

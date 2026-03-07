@@ -14,7 +14,7 @@ export function WarRoom({ wall, loading }: WarRoomProps) {
 
   if (loading) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+      <div className="war-room-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
         {[0, 1].map(i => (
           <div key={i} className="skeleton" style={{ height: 200, borderRadius: 2 }} />
         ))}
@@ -34,7 +34,7 @@ export function WarRoom({ wall, loading }: WarRoomProps) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", alignItems: "start" }}>
+    <div className="war-room-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", alignItems: "start" }}>
 
       {/* Left: Join form */}
       <div>

@@ -73,10 +73,10 @@
 | 8 | Battle History + leaderboards | ✅ COMPLETADO |
 | 9 | Guardian Profile + Badges | ✅ COMPLETADO |
 | 10 | Admin Backoffice /admin | ✅ COMPLETADO |
-| 11 | Animaciones de eventos (breach, deploy, join) | ⬜ Pendiente |
+| 11 | Animaciones de eventos (breach, deploy, join) | ✅ COMPLETADO |
 | 12 | Price Chart con Wall overlay | ✅ COMPLETADO |
-| 13 | Audio (Tone.js + SFX) | ⬜ Pendiente |
-| 14 | Polish, mobile, responsive | ⬜ Pendiente |
+| 13 | Audio (Tone.js + SFX) | ✅ COMPLETADO |
+| 14 | Polish, mobile, responsive | ✅ COMPLETADO |
 | 15 | Deploy Vercel + verificación Playwright | ✅ COMPLETADO (build OK, deployed) |
 
 ---
@@ -329,7 +329,7 @@
 
 ---
 
-*Última actualización: Fases 0-10 + 12 + 15 completadas. Pendientes: 11 (animaciones breach/deploy), 13 (audio Tone.js), 14 (polish mobile).*
+*Última actualización: Todas las fases completadas (0-15). Build limpio.*
 
 ## ESTADO DEL DEPLOY
 - URL de deploy: helm-gso45ej9m-alberto-g-toribios-projects.vercel.app (detrás de auth Vercel)

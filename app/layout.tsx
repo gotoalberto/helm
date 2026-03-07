@@ -3,6 +3,9 @@ import { Orbitron, Rajdhani, Share_Tech_Mono } from "next/font/google"
 import "./globals.css"
 import { Web3Provider } from "@/providers/Web3Provider"
 import { Toaster } from "sonner"
+import { CitadelEventOverlay } from "@/components/citadel/EventAnimations"
+import { AudioControls } from "@/components/ui/AudioControls"
+import { AudioInit } from "@/components/ui/AudioInit"
 
 const orbitron = Orbitron({
   variable: "--font-orbitron",
@@ -56,6 +59,9 @@ export default function RootLayout({
       <body className={`${orbitron.variable} ${rajdhani.variable} ${shareTechMono.variable} antialiased`}>
         <Web3Provider>
           {children}
+          <CitadelEventOverlay />
+          <AudioControls />
+          <AudioInit />
           <Toaster
             position="bottom-right"
             toastOptions={{
